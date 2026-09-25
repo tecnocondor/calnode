@@ -276,6 +276,12 @@ func (s *SMTP) buildRaw(msg Message) ([]byte, error) {
 	fmt.Fprintf(&buf, "From: %s\r\n", from.String())
 	fmt.Fprintf(&buf, "To: %s\r\n", strings.Join(toFormatted, ", "))
 	fmt.Fprintf(&buf, "Subject: %s\r\n", subject)
+	// Date is mandatory (RFC 5322 §3.6) and Message-ID expected. Without them the
+	// receiving server adds its own after DKIM signing, which breaks a signature
+	// that lists them in h= (Stalwart signs both) — Outlook then fails DKIM and
+	// junks the message.
+	fmt.Fprintf(&buf, "Date: %s\r\n", time.Now().Format(time.RFC1123Z))
+	fmt.Fprintf(&buf, "Message-ID: %s\r\n", messageID(s.from))
 	fmt.Fprintf(&buf, "MIME-Version: 1.0\r\n")
 
 	hasHTML := msg.HTML != ""
@@ -339,6 +345,16 @@ func (s *SMTP) buildRaw(msg Message) ([]byte, error) {
 	}
 	fmt.Fprintf(&buf, "--%s--\r\n", mixed)
 	return buf.Bytes(), nil
+}
+
+// messageID returns a unique RFC 5322 Message-ID on the sender's domain, so it
+// aligns with the From address (some filters score a foreign-domain ID).
+func messageID(from string) string {
+	domain := "calnode.local"
+	if i := strings.LastIndex(from, "@"); i >= 0 && i < len(from)-1 {
+		domain = from[i+1:]
+	}
+	return "<" + uid.New() + "@" + domain + ">"
 }
 
 // base64Wrap base64-encodes b and wraps it at 76 characters per line (RFC 2045).
