@@ -1,10 +1,13 @@
 package mailer
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"net"
+	"net/mail"
 	"net/smtp"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -194,5 +197,33 @@ func TestSMTP_Send_invalidRecipientNeverDials(t *testing.T) {
 	}
 	if n := accepted.Load(); n != 0 {
 		t.Errorf("Send opened %d connection(s) before refusing the recipient; want 0", n)
+	}
+}
+
+// Without Date and Message-ID the receiving server adds its own after DKIM signing,
+// breaking a signature that covers them (Outlook: "dkim=fail", message junked).
+func TestBuildRaw_setsDateAndMessageID(t *testing.T) {
+	s := NewSMTP("localhost", "25", "", "", "", "", false, false, "agenda@example.com", "Example")
+	raw := func() *mail.Message {
+		b, err := s.buildRaw(Message{To: []string{"to@test.local"}, Subject: "hola", Text: "cuerpo"})
+		if err != nil {
+			t.Fatalf("buildRaw: %v", err)
+		}
+		m, err := mail.ReadMessage(bytes.NewReader(b))
+		if err != nil {
+			t.Fatalf("ReadMessage: %v", err)
+		}
+		return m
+	}
+	a, b := raw(), raw()
+	if d, err := a.Header.Date(); err != nil || time.Since(d) > time.Minute {
+		t.Errorf("Date header = %q (%v); want a current RFC 5322 date", a.Header.Get("Date"), err)
+	}
+	id := a.Header.Get("Message-Id")
+	if !strings.HasPrefix(id, "<") || !strings.HasSuffix(id, "@example.com>") {
+		t.Errorf("Message-ID = %q; want <…@example.com> (the sender's domain)", id)
+	}
+	if id == b.Header.Get("Message-Id") {
+		t.Errorf("two messages share Message-ID %q; want unique", id)
 	}
 }
