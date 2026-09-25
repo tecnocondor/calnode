@@ -1,8 +1,11 @@
 package mailer
 
 import (
+	"bytes"
 	"context"
 	"net"
+	"net/mail"
+	"strings"
 	"testing"
 	"time"
 )
@@ -93,5 +96,29 @@ func TestSMTP_Send_appliesDefaultTimeoutWithNoCtxDeadline(t *testing.T) {
 	}
 	if elapsed > 5*time.Second {
 		t.Errorf("Send took %v to fail; want it bounded by defaultSMTPTimeout (300ms), not hanging", elapsed)
+	}
+}
+
+// Without Date and Message-ID the receiving server adds its own after DKIM signing,
+// breaking a signature that covers them (Outlook: "dkim=fail", message junked).
+func TestBuildRaw_setsDateAndMessageID(t *testing.T) {
+	s := NewSMTP("localhost", "25", "", "", false, false, "agenda@example.com", "Example")
+	raw := func() *mail.Message {
+		m, err := mail.ReadMessage(bytes.NewReader(s.buildRaw(Message{To: []string{"to@test.local"}, Subject: "hola", Text: "cuerpo"})))
+		if err != nil {
+			t.Fatalf("ReadMessage: %v", err)
+		}
+		return m
+	}
+	a, b := raw(), raw()
+	if d, err := a.Header.Date(); err != nil || time.Since(d) > time.Minute {
+		t.Errorf("Date header = %q (%v); want a current RFC 5322 date", a.Header.Get("Date"), err)
+	}
+	id := a.Header.Get("Message-Id")
+	if !strings.HasPrefix(id, "<") || !strings.HasSuffix(id, "@example.com>") {
+		t.Errorf("Message-ID = %q; want <…@example.com> (the sender's domain)", id)
+	}
+	if id == b.Header.Get("Message-Id") {
+		t.Errorf("two messages share Message-ID %q; want unique", id)
 	}
 }
