@@ -34,6 +34,9 @@ type Config struct {
 	// Google OAuth (calendar + sign-in)
 	GoogleClientID     string
 	GoogleClientSecret string
+	// GoogleSendInvites: Google emails guests its own invite (default). false → Calnode's
+	// email (with .ics) is the only one the guest gets. See gcal.Client.SetSendInvites.
+	GoogleSendInvites bool
 
 	// Microsoft 365 / Outlook (calendar) — env-only; tenant defaults to "common".
 	MicrosoftClientID     string
@@ -147,6 +150,7 @@ func Load() *Config {
 	cfg.LogLevel = parseLogLevel(getEnv("LOG_LEVEL", "info"))
 	cfg.CookieSecure = getBool("COOKIE_SECURE", strings.HasPrefix(cfg.BaseURL, "https://"))
 	cfg.DemoMode = getBool("DEMO_MODE", false)
+	cfg.GoogleSendInvites = getBool("GOOGLE_SEND_INVITES", true)
 	cfg.DemoResetInterval = getDuration("DEMO_RESET_INTERVAL", 30*time.Minute)
 
 	return cfg

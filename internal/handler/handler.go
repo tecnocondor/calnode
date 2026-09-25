@@ -52,6 +52,10 @@ type Handler struct {
 	demoResetInterval time.Duration
 	demoMu            sync.RWMutex
 	demoNextResetAt   time.Time
+
+	// googleQuietInvites is the inverse of GOOGLE_SEND_INVITES, so the zero value keeps
+	// the default (Google emails its own invite). Read when gcal is hot-reloaded.
+	googleQuietInvites bool
 }
 
 // SetLiveKit swaps the active LiveKit client (nil disables built-in video rooms).
@@ -182,6 +186,12 @@ func (h *Handler) SetDataDir(dir string) {
 // SetDemoMode marks this instance as the public, self-resetting demo, which
 // disables calendar/Zoom connect and is surfaced to the frontend via
 // GET /v1/auth/status. Never set this on a real deployment.
+// SetGoogleSendInvites records GOOGLE_SEND_INVITES so a Google client rebuilt from
+// Settings → Google OAuth keeps the same behaviour as the one built at startup.
+func (h *Handler) SetGoogleSendInvites(v bool) {
+	h.googleQuietInvites = !v
+}
+
 func (h *Handler) SetDemoMode(v bool) {
 	h.demoMode = v
 }

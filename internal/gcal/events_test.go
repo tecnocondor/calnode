@@ -328,3 +328,79 @@ func TestUpdateEvent_emptyEventID_noOp(t *testing.T) {
 		t.Errorf("UpdateEvent(\"\") = %v; want nil", err)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// SetSendInvites (GOOGLE_SEND_INVITES)
+// ---------------------------------------------------------------------------
+
+// sendUpdatesRecorder answers create/patch/delete and records each call's sendUpdates.
+func sendUpdatesRecorder(t *testing.T) (*httptest.Server, *[]string) {
+	t.Helper()
+	got := new([]string)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		*got = append(*got, r.Method+" "+r.URL.Query().Get("sendUpdates"))
+		switch r.Method {
+		case http.MethodPost:
+			json.NewEncoder(w).Encode(calEventResp{ID: "ev-1"}) //nolint:errcheck
+		case http.MethodPatch:
+			w.WriteHeader(http.StatusOK)
+		case http.MethodDelete:
+			w.WriteHeader(http.StatusNoContent)
+		}
+	}))
+	t.Cleanup(srv.Close)
+	return srv, got
+}
+
+func exerciseEvent(t *testing.T, c *Client) {
+	t.Helper()
+	ctx := context.Background()
+	start := time.Date(2026, 6, 15, 9, 0, 0, 0, time.UTC)
+	if _, _, _, err := c.CreateEvent(ctx, "user-1", calendar.CreateEventParams{
+		Summary: "Call", Start: start, End: start.Add(30 * time.Minute),
+		OrganizerName: "Bob", OrganizerEmail: "bob@example.com",
+	}); err != nil {
+		t.Fatalf("CreateEvent: %v", err)
+	}
+	if err := c.UpdateEvent(ctx, "user-1", "", "ev-1", start.Add(time.Hour), start.Add(90*time.Minute)); err != nil {
+		t.Fatalf("UpdateEvent: %v", err)
+	}
+	if err := c.CancelEvent(ctx, "user-1", "", "ev-1"); err != nil {
+		t.Fatalf("CancelEvent: %v", err)
+	}
+}
+
+func TestSendInvites_defaultLetsGoogleEmailGuests(t *testing.T) {
+	srv, got := sendUpdatesRecorder(t)
+	c := newTestClient(t)
+	c.apiBase = srv.URL
+	saveDestinationConnection(t, c, "user-1", "primary")
+
+	exerciseEvent(t, c)
+
+	want := []string{"POST all", "PATCH all", "DELETE all"}
+	if strings.Join(*got, ",") != strings.Join(want, ",") {
+		t.Errorf("calls = %v; want %v", *got, want)
+	}
+	if !c.InvitesGuests() {
+		t.Error("InvitesGuests() = false by default; want true")
+	}
+}
+
+func TestSendInvites_falseSilencesGoogleAndLetsCalnodeAttachICS(t *testing.T) {
+	srv, got := sendUpdatesRecorder(t)
+	c := newTestClient(t)
+	c.apiBase = srv.URL
+	c.SetSendInvites(false)
+	saveDestinationConnection(t, c, "user-1", "primary")
+
+	exerciseEvent(t, c)
+
+	want := []string{"POST none", "PATCH none", "DELETE none"}
+	if strings.Join(*got, ",") != strings.Join(want, ",") {
+		t.Errorf("calls = %v; want %v", *got, want)
+	}
+	if c.InvitesGuests() {
+		t.Error("InvitesGuests() = true with SetSendInvites(false); want false so Calnode attaches its .ics")
+	}
+}

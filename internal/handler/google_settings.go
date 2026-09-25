@@ -170,6 +170,7 @@ func (h *Handler) PatchGoogleSettings(w http.ResponseWriter, r *http.Request) {
 			h.writeError(w, http.StatusInternalServerError, "failed to initialize calendar client")
 			return
 		}
+		gc.SetSendInvites(!h.googleQuietInvites)
 		svc := calendar.NewService(h.db)
 		svc.Register(gc)
 		h.SetCalendar(svc)
