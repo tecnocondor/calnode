@@ -1,0 +1,47 @@
+# Imagen de Tecnocondor: Calnode con parches propios, publicada en el GHCR del fork.
+# Se construye solo al empujar una etiqueta vX.Y.Z-tc.N (p. ej. v0.9.0-tc.1).
+# Los demás flujos del proyecto original se dejan deshabilitados en este fork.
+name: Imagen Tecnocondor
+
+on:
+  push:
+    tags: ['v*-tc.*']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Iniciar sesión en GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Metadatos
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/calnode
+          tags: |
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+
+      - name: Construir y publicar (amd64, la arquitectura del VPS)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+            COMMIT=${{ github.sha }}
