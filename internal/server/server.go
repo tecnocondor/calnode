@@ -49,6 +49,7 @@ func BuildHandler(ctx context.Context, cfg *config.Config, db *sql.DB, logger *s
 	}
 	h.SetDataDir(dataDir)
 	h.SetEncKey(cfg.EncryptionKey)
+	h.SetGoogleSendInvites(cfg.GoogleSendInvites)
 	h.SetDemoMode(cfg.DemoMode)
 	h.SetDemoResetInterval(cfg.DemoResetInterval)
 
@@ -156,8 +157,9 @@ func BuildHandler(ctx context.Context, cfg *config.Config, db *sql.DB, logger *s
 		if err != nil {
 			logger.Error("gcal: init failed", "error", err)
 		} else {
+			gc.SetSendInvites(cfg.GoogleSendInvites)
 			calSvc.Register(gc)
-			logger.Info("Google Calendar configured", "redirect_url", calRedirect)
+			logger.Info("Google Calendar configured", "redirect_url", calRedirect, "google_sends_invites", cfg.GoogleSendInvites)
 		}
 	} else {
 		logger.Info("Google OAuth not configured — add credentials in Settings or set GOOGLE_CLIENT_ID")

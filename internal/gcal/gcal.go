@@ -31,9 +31,25 @@ var _ calendar.Provider = (*Client)(nil)
 // Name identifies this provider in the calendar_connections table.
 func (c *Client) Name() string { return "google" }
 
-// InvitesGuests is true: Google emails guests its own invite (sendUpdates=all),
-// so Calnode must not also attach an .ics (it would duplicate).
-func (c *Client) InvitesGuests() bool { return true }
+// InvitesGuests reports whether Google emails guests its own invite (sendUpdates=all),
+// in which case Calnode must not also attach an .ics (it would duplicate). True by
+// default; false when GOOGLE_SEND_INVITES=false, so the guest gets a single email —
+// Calnode's own, localized and with the .ics — instead of Google's invite, which is
+// sent from the host's Google account and in that account's language.
+func (c *Client) InvitesGuests() bool { return c.sendInvites }
+
+// SetSendInvites chooses who emails the guest: Google (true, the default) or
+// Calnode (false). With false, events are still created with the guest as an
+// attendee (so they join Meet without knocking), but with sendUpdates=none.
+func (c *Client) SetSendInvites(v bool) { c.sendInvites = v }
+
+// sendUpdates is the Calendar API sendUpdates value matching SetSendInvites.
+func (c *Client) sendUpdates() string {
+	if c.sendInvites {
+		return "all"
+	}
+	return "none"
+}
 
 // Client manages Google Calendar OAuth tokens and API access.
 type Client struct {
@@ -42,6 +58,8 @@ type Client struct {
 	db      *sql.DB
 	logger  *slog.Logger
 	apiBase string // base URL for Calendar API; overridable in tests
+
+	sendInvites bool // see SetSendInvites
 }
 
 // New creates a Client. encKeyHex is the 64-char hex AES-256 encryption key.
@@ -60,10 +78,11 @@ func New(db *sql.DB, clientID, clientSecret, redirectURL, encKeyHex string) (*Cl
 			RedirectURL:  redirectURL,
 			Scopes:       []string{"https://www.googleapis.com/auth/calendar"},
 		},
-		key:     key,
-		db:      db,
-		logger:  slog.Default(),
-		apiBase: "https://www.googleapis.com/calendar/v3",
+		key:         key,
+		db:          db,
+		logger:      slog.Default(),
+		apiBase:     "https://www.googleapis.com/calendar/v3",
+		sendInvites: true,
 	}, nil
 }
 

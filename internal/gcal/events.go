@@ -113,7 +113,7 @@ func (c *Client) CreateEvent(ctx context.Context, userID string, p calendar.Crea
 		return "", "", "", fmt.Errorf("gcal: create event marshal: %w", err)
 	}
 
-	apiURL := c.apiBase + "/calendars/" + url.PathEscape(calID) + "/events?sendUpdates=all"
+	apiURL := c.apiBase + "/calendars/" + url.PathEscape(calID) + "/events?sendUpdates=" + c.sendUpdates()
 	if p.AddMeet {
 		apiURL += "&conferenceDataVersion=1" // required for conferenceData.createRequest to take effect
 	}
@@ -141,8 +141,9 @@ func (c *Client) CreateEvent(ctx context.Context, userID string, p calendar.Crea
 }
 
 // UpdateEvent moves an existing event to a new start/end (used on reschedule).
-// Returns nil if eventID is empty or the user has no connection. sendUpdates=all
-// so the attendee is notified of the new time.
+// Returns nil if eventID is empty or the user has no connection. With the default
+// sendUpdates=all Google notifies the attendee of the new time; with SetSendInvites(false)
+// Calnode's own reschedule email does.
 func (c *Client) UpdateEvent(ctx context.Context, userID, calendarID, eventID string, start, end time.Time) error {
 	if eventID == "" {
 		return nil
@@ -173,7 +174,7 @@ func (c *Client) UpdateEvent(ctx context.Context, userID, calendarID, eventID st
 		return fmt.Errorf("gcal: update event marshal: %w", err)
 	}
 
-	apiURL := c.apiBase + "/calendars/" + url.PathEscape(calID) + "/events/" + url.PathEscape(eventID) + "?sendUpdates=all"
+	apiURL := c.apiBase + "/calendars/" + url.PathEscape(calID) + "/events/" + url.PathEscape(eventID) + "?sendUpdates=" + c.sendUpdates()
 	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, apiURL, bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("gcal: update event request: %w", err)
@@ -213,7 +214,7 @@ func (c *Client) CancelEvent(ctx context.Context, userID, calendarID, eventID st
 		calID = calendarID
 	}
 
-	apiURL := c.apiBase + "/calendars/" + url.PathEscape(calID) + "/events/" + url.PathEscape(eventID) + "?sendUpdates=all"
+	apiURL := c.apiBase + "/calendars/" + url.PathEscape(calID) + "/events/" + url.PathEscape(eventID) + "?sendUpdates=" + c.sendUpdates()
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, apiURL, nil)
 	if err != nil {
 		return fmt.Errorf("gcal: cancel event request: %w", err)
