@@ -1859,12 +1859,13 @@ func (h *Handler) loadHostPrefs(ctx context.Context, hostID string) (hostPrefs, 
 }
 
 // enqueueReminder inserts a reminder.send job scheduled hoursBefore hours before startAt.
-// If the computed run_at has already passed, the job fires on the next poll cycle.
+// A reminder whose time has already passed is skipped: on a booking made (or moved)
+// inside the reminder window it would land seconds after the confirmation, which
+// already carries everything the reminder says. Later reminders still fire.
 func (h *Handler) enqueueReminder(ctx context.Context, bookingID string, startAt time.Time, hoursBefore int) error {
 	runAt := startAt.UTC().Add(-time.Duration(hoursBefore) * time.Hour)
-	now := time.Now().UTC()
-	if runAt.Before(now) {
-		runAt = now
+	if runAt.Before(time.Now().UTC()) {
+		return nil
 	}
 
 	payload, err := json.Marshal(map[string]any{"booking_id": bookingID, "hours_before": hoursBefore})
@@ -1956,7 +1957,7 @@ func (h *Handler) replaceReminderJobs(ctx context.Context, bookingID, etID strin
 	for _, hb := range hours {
 		runAt := newStart.UTC().Add(-time.Duration(hb) * time.Hour)
 		if runAt.Before(now) {
-			runAt = now
+			continue // already due: see enqueueReminder
 		}
 		payload, err := json.Marshal(map[string]any{"booking_id": bookingID, "hours_before": hb})
 		if err != nil {
