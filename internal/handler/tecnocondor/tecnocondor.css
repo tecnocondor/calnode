@@ -1,0 +1,512 @@
+/*
+ * Tecnocondor overlay — fork patch, NOT upstream Calnode.
+ *
+ * Gives the public pages (/book/<slug>, /manage/<token>, /u/<handle>, /team/<slug>) the
+ * identity of tecnocondor.dev ("ingeniería a la vista"). Loaded with ONE <link> per
+ * template, placed after booking.css AND after each page's inline <style>, so plain
+ * selectors win by source order; !important is used only where booking.css itself uses it
+ * (the accent rule at its end). Served from GET /tc/tecnocondor.css (tecnocondor_assets.go).
+ * The embed widget (embed.js) does not load it.
+ *
+ * Tokens copied from tecnocondor/web src/styles/global.css (light theme). The pages have
+ * no dark mode upstream and the uploaded logo is a PNG with the blue in it, so this stays
+ * light. Colour meanings, as on the site:
+ *   - ink (--texto / the Branding accent): primary button, selected day.
+ *   - orange (--naranja): what is live or decided by a person (available days, the arrow
+ *     block of the primary button and its fill on hover). Never behind text at rest.
+ *   - blueprint blue (--plano): links and focus.
+ * The Branding accent (Settings → Branding) still drives the selected day/slot and the
+ * primary button through --booking-accent, as upstream does.
+ *
+ * Fonts: Funnel Display, Geist and Geist Mono (variable, latin + latin-ext) from the
+ * @fontsource-variable packages, self-hosted next to this file. SIL OFL 1.1, licences in
+ * fonts/OFL-*.txt.
+ */
+
+/* ── Fonts ─────────────────────────────────────────── */
+@font-face {
+  font-family: "Geist Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(/tc/fonts/geist-latin-ext-wght-normal.woff2) format("woff2-variations");
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+  font-family: "Geist Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(/tc/fonts/geist-latin-wght-normal.woff2) format("woff2-variations");
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face {
+  font-family: "Geist Mono Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(/tc/fonts/geist-mono-latin-ext-wght-normal.woff2) format("woff2-variations");
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+  font-family: "Geist Mono Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(/tc/fonts/geist-mono-latin-wght-normal.woff2) format("woff2-variations");
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face {
+  font-family: "Funnel Display Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300 800;
+  src: url(/tc/fonts/funnel-display-latin-ext-wght-normal.woff2) format("woff2-variations");
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+  font-family: "Funnel Display Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300 800;
+  src: url(/tc/fonts/funnel-display-latin-wght-normal.woff2) format("woff2-variations");
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+/* ── Tokens (global.css, light) ─────────────────────── */
+:root {
+  --fondo: #f5f6f8;
+  --superficie: #ffffff;
+  --superficie-2: #eceff3;
+  --linea: #dce1e7;
+  --linea-fuerte: #c3cad3;
+  --texto: #0d1219;
+  --texto-2: #3f4a59;
+  --texto-3: #5b6676;
+  --naranja: #f16b3b;
+  --naranja-texto: #b4441c;
+  --naranja-hondo: color-mix(in srgb, #f16b3b 78%, #000);
+  --sobre-naranja: #1a0d07;
+  --plano: #1d59a7;
+  --plano-suave: color-mix(in srgb, #1d59a7 9%, transparent);
+  --sombra: 0 30px 80px -40px rgb(13 18 25 / 0.35);
+  --exito: #15803d;
+  --exito-suave: rgb(34 197 94 / 0.12);
+  --aviso: #92400e;
+  --aviso-suave: rgb(245 158 11 / 0.12);
+  --aviso-borde: rgb(245 158 11 / 0.3);
+  --error: #b91c1c;
+  --peligro: #b42318;
+  --sobre-peligro: #ffffff;
+  --icono-peligro: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M2.5 4.5h11M6.5 4.5V3h3v1.5M4 4.5l.7 9h6.6l.7-9M6.7 7v4.5M9.3 7v4.5'/%3E%3C/svg%3E");
+  --flecha-accion: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%231a0d07' stroke-width='1.6'%3E%3Cpath d='M3 8h10M9 4l4 4-4 4'/%3E%3C/svg%3E");
+
+  --display: "Funnel Display Variable", "Geist Variable", system-ui, sans-serif;
+  --sans: "Geist Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono Variable", ui-monospace, "SFMono-Regular", monospace;
+  --radio: 6px;
+
+  /* Derived, as in the site's booking modal (AgendaModal.astro). */
+  --tc-tinte: color-mix(in srgb, var(--naranja) 13%, transparent);
+  --tc-anillo: color-mix(in srgb, var(--naranja) 40%, transparent);
+  /* The Branding accent stays in charge of "selected" and the primary button. */
+  --tc-tinta: var(--booking-accent, var(--texto));
+  --tc-sobre-tinta: var(--booking-accent-text, var(--fondo));
+
+  color-scheme: light;
+}
+
+/* ── Page ──────────────────────────────────────────── */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+body {
+  font-family: var(--sans);
+  font-feature-settings: "ss01", "cv11";
+  background: var(--fondo);
+  color: var(--texto);
+}
+/* Blueprint grid fading from the top, like the site's hero and booking modal. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--plano-suave) 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(90deg, var(--plano-suave) 1px, transparent 1px) 0 0 / 40px 40px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000, transparent);
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000, transparent);
+}
+/* Upstream leaves form controls in the UA font (the day numbers were serif). */
+button, input, select, textarea { font-family: inherit; }
+::selection {
+  background: var(--naranja);
+  color: var(--sobre-naranja);
+}
+:focus-visible {
+  outline: 2px solid var(--plano);
+  outline-offset: 3px;
+}
+header span { color: var(--texto) !important; font-family: var(--display); } /* businessHeader name without logo */
+.brand-banner { border-radius: var(--radio); }
+
+/* ── Card ──────────────────────────────────────────── */
+.card {
+  position: relative;
+  background: var(--superficie);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+}
+/* Brand line along the top edge (as the site's booking modal). */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  z-index: 1;
+  background: var(--naranja);
+}
+.info {
+  border-color: var(--linea);
+  background: color-mix(in oklab, var(--fondo) 72%, transparent);
+}
+.cal-col { border-color: var(--linea); }
+.host-name { color: var(--texto-3); font-family: var(--mono); font-size: .75rem; letter-spacing: .02em; }
+.event-name {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.375rem;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--texto);
+}
+.meta li { color: var(--texto-2); }
+.meta svg { color: var(--texto-3); }
+.description, .notice-hint { color: var(--texto-2); }
+.description strong { color: var(--texto); }
+.description a { color: var(--plano); text-underline-offset: 2px; }
+.desc-toggle { color: var(--plano); }
+.desc-toggle:hover { color: var(--texto); }
+.avatar-initials, .host-faces .face-more {
+  background: var(--tc-tinte);
+  color: var(--naranja-texto);
+  font-family: var(--mono);
+}
+.host-faces .avatar-img, .host-faces .avatar-initials, .host-faces .face-more {
+  border-color: var(--superficie);
+  box-shadow: 0 0 0 1px var(--linea);
+}
+
+/* ── Calendar ──────────────────────────────────────── */
+.month-label, #month-label { color: var(--texto); font-weight: 600; }
+.cal-nav button {
+  width: 32px; height: 32px;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  background: transparent;
+  color: var(--texto);
+}
+.cal-nav button:hover:not(:disabled) { background: transparent; border-color: var(--plano); color: var(--plano); }
+.ch { font-family: var(--mono); color: var(--texto-3); }
+.cd {
+  border-radius: var(--radio);
+  color: var(--texto-3);
+  font-variant-numeric: tabular-nums;
+}
+/* Available = a person can decide here: orange tint, like the site's booking modal. */
+.cd.available {
+  background: var(--tc-tinte);
+  color: var(--naranja-texto);
+  font-weight: 600;
+  transition: box-shadow .12s, background .12s;
+}
+.cd.available:hover { background: var(--tc-tinte); box-shadow: inset 0 0 0 1.5px var(--plano); }
+.cd.today::after { background: var(--naranja); }
+.cd.sel.today::after { background: var(--naranja); }
+.cd:disabled { color: var(--linea-fuerte); }
+.tz-label, .tz-wrapper select, .tz-wrapper svg { color: var(--texto-3); font-family: var(--mono); }
+.tz-wrapper:hover select, .tz-wrapper:hover svg { color: var(--plano); }
+
+/* ── Slots ─────────────────────────────────────────── */
+.slots-header, .slot-label, .section-title { color: var(--texto); font-weight: 600; }
+.hint { color: var(--texto-3); }
+.slot-btn {
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  color: var(--texto);
+  font-variant-numeric: tabular-nums;
+  transition: border-color .12s, color .12s, background .12s;
+}
+.slot-btn:hover { border-color: var(--tc-tinta); background: var(--tc-tinte); color: var(--naranja-texto); }
+.slot-btn.taken, .slot-btn.taken:hover {
+  background: transparent;
+  border-color: var(--linea);
+  color: var(--texto-3);
+  text-decoration-color: var(--linea-fuerte);
+}
+.time-periods { background: var(--superficie-2); border-radius: var(--radio); }
+.time-periods button { border-radius: 4px; color: var(--texto-2); }
+.time-periods button[aria-pressed="true"] {
+  background: var(--superficie);
+  color: var(--texto);
+  box-shadow: 0 0 0 1px var(--linea);
+}
+.time-periods button:focus-visible { outline-color: var(--plano); }
+
+/* ── Form ──────────────────────────────────────────── */
+.back-btn { color: var(--texto-3); }
+.back-btn:hover { color: var(--plano); }
+.field label { color: var(--texto-2); font-weight: 600; }
+.field input, .field textarea, .field select {
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  background: color-mix(in oklab, var(--fondo) 85%, transparent);
+  color: var(--texto);
+  font-family: inherit;
+}
+.field input::placeholder, .field textarea::placeholder { color: var(--texto-3); opacity: .7; }
+.field input:focus, .field textarea:focus, .field select:focus {
+  border-color: transparent;
+  background: var(--superficie);
+  box-shadow: none;
+  outline: 2px solid var(--plano);
+  outline-offset: 1px;
+}
+.field-checkbox input[type="checkbox"] { accent-color: var(--texto); }
+.field-checkbox label { color: var(--texto-2); }
+.required-star, .form-error { color: var(--error); }
+
+/* Primary button = the site's .boton--accion: ink, 2px corners, orange arrow block in
+   front, and an orange fill that opens from the block on hover/focus. */
+.btn-primary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 46px;
+  padding: 0 20px 0 0;
+  border: 0;
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: .9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
+  overflow: hidden;
+  isolation: isolate;
+  transition: color .3s;
+}
+.btn-primary::after {
+  content: "";
+  order: -1;
+  align-self: stretch;
+  flex: none;
+  width: 46px;
+  margin-right: 18px;
+  background: var(--flecha-accion) center / 16px no-repeat, var(--naranja);
+  transition: background-color .3s, background-position .25s cubic-bezier(.2, .7, .2, 1);
+}
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--naranja);
+  clip-path: circle(0 at 23px 50%);
+  transition: clip-path .52s ease-out;
+}
+.btn-primary:not(:disabled):is(:hover, :focus-visible, :active) { color: var(--sobre-naranja) !important; }
+.btn-primary:not(:disabled):is(:hover, :focus-visible, :active)::before { clip-path: circle(160% at 23px 50%); }
+.btn-primary:not(:disabled):is(:hover, :focus-visible, :active)::after {
+  background-color: var(--naranja-hondo);
+  background-position: calc(50% + 3px) center, 0 0;
+}
+.btn-primary:disabled { opacity: .55; }
+
+/* Destructive (manage: cancel) = the site's .boton--peligro. */
+.btn-secondary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 46px;
+  padding: 0 20px 0 0;
+  border: 1.5px solid var(--peligro);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--peligro);
+  font-family: inherit;
+  font-size: .9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
+  overflow: hidden;
+  isolation: isolate;
+  transition: color .3s;
+}
+.btn-secondary::after {
+  content: "";
+  order: -1;
+  align-self: stretch;
+  flex: none;
+  width: 43px;
+  margin-right: 18px;
+  background: var(--icono-peligro) center / 16px no-repeat, var(--peligro);
+}
+.btn-secondary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--peligro);
+  clip-path: circle(0 at 23px 50%);
+  transition: clip-path .52s ease-out;
+}
+.btn-secondary:hover { border-color: var(--peligro); background: transparent; }
+.btn-secondary:not(:disabled):is(:hover, :focus-visible, :active) { color: var(--sobre-peligro); }
+.btn-secondary:not(:disabled):is(:hover, :focus-visible, :active)::before { clip-path: circle(160% at 23px 50%); }
+.btn-secondary:disabled { opacity: .5; cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary, .btn-primary::before, .btn-primary::after,
+  .btn-secondary, .btn-secondary::before { transition: none; }
+}
+
+/* ── Confirmation and state pages ──────────────────── */
+.confirm-icon, .state-icon.check { background: var(--exito-suave); }
+.confirm-icon svg, .state-icon.check svg { stroke: var(--exito); }
+.state-icon.warn { background: var(--aviso-suave); }
+.state-icon.warn svg { stroke: var(--aviso); }
+.state-icon.info { background: var(--superficie-2); }
+.state-icon.info svg { stroke: var(--texto-3); }
+.confirm-view h3, .state-page h2 {
+  font-family: var(--display);
+  font-size: 1.3125rem;
+  letter-spacing: -0.01em;
+  color: var(--texto);
+}
+.confirm-view .when { color: var(--naranja-texto); }
+.confirm-view .sub, .state-page p { color: var(--texto-2); }
+.scheduled-label, .confirm-times .row-label {
+  font-family: var(--mono);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: .02em;
+  color: var(--texto-3);
+}
+.scheduled-time, .confirm-times .row-val { color: var(--texto); font-variant-numeric: tabular-nums; }
+.confirm-times .row-val.new { color: var(--naranja-texto); }
+
+/* ── Footer, consent banner, demo banner ───────────── */
+.powered-by a, .powered-by .cookie-link, .powered-by .lang-select {
+  font-family: var(--mono);
+  font-weight: 500;
+  color: var(--texto-3);
+}
+.powered-by a:hover, .powered-by .cookie-link:hover { opacity: 1; color: var(--plano); }
+.cookie-banner {
+  border-color: var(--linea);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+}
+.cookie-text { color: var(--texto-2); }
+.cookie-text a { color: var(--plano); }
+.cookie-btn { border-color: var(--linea); border-radius: 2px; background: transparent; color: var(--texto); font-family: inherit; }
+.cookie-btn:hover { background: transparent; border-color: var(--linea-fuerte); }
+.cookie-btn-primary, .cookie-btn-primary:hover { background: var(--texto); border-color: var(--texto); color: var(--fondo); }
+.demo-banner {
+  color: var(--aviso);
+  background: var(--aviso-suave);
+  border-color: var(--aviso-borde);
+  border-radius: var(--radio);
+}
+
+/* ── Booking assistant (only when enabled) ─────────── */
+.asst-fab-btn, .asst-send { background: var(--texto); color: var(--fondo); border-radius: 2px; font-family: inherit; }
+.asst-fab-btn:hover { background: var(--texto-2); }
+.asst-panel { background: var(--superficie); border-color: var(--linea); border-radius: var(--radio); }
+.asst-head, .asst-row { border-color: var(--linea); }
+.asst-title { color: var(--texto); }
+.asst-msg { border-radius: var(--radio); }
+.asst-msg.bot { background: var(--superficie-2); color: var(--texto); }
+.asst-msg.user { background: var(--texto); color: var(--fondo); }
+.asst-input { border-color: var(--linea); border-radius: var(--radio); color: var(--texto); }
+.asst-input:focus { border-color: var(--plano); }
+.asst-link {
+  background: transparent;
+  border-color: var(--linea);
+  border-radius: var(--radio);
+  color: var(--plano);
+}
+.asst-link:hover { background: var(--plano-suave); border-color: var(--plano); color: var(--plano); }
+.asst-link svg, .asst-link:hover svg { color: var(--plano); }
+
+/* ── Directory (/u/<handle>, /team/<slug>) ─────────── */
+.dir-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--superficie);
+  border-color: var(--linea);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+}
+.dir-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--naranja);
+}
+.dir-avatar { background: var(--tc-tinte); color: var(--naranja-texto); font-family: var(--mono); }
+.dir-title { font-family: var(--display); font-weight: 700; color: var(--texto); }
+.dir-sub, .dir-item-meta, .dir-empty { color: var(--texto-2); }
+.dir-members li { border-color: var(--linea); }
+.dir-members a { color: var(--plano); }
+.dir-item { border-color: var(--linea); border-radius: var(--radio); }
+.dir-item-name a:hover { color: var(--plano); }
+/* "Book" link as the site's action button (ink + orange arrow block). */
+.dir-book {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px 0 0;
+  border-radius: 2px;
+  background: var(--tc-tinta);
+  color: var(--tc-sobre-tinta);
+  overflow: hidden;
+  isolation: isolate;
+  transition: color .3s;
+}
+.dir-book::after {
+  content: "";
+  order: -1;
+  align-self: stretch;
+  flex: none;
+  width: 40px;
+  margin-right: 12px;
+  background: var(--flecha-accion) center / 13px no-repeat, var(--naranja);
+}
+.dir-book::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--naranja);
+  clip-path: circle(0 at 20px 50%);
+  transition: clip-path .52s ease-out;
+}
+.dir-book:is(:hover, :focus-visible, :active) { color: var(--sobre-naranja); }
+.dir-book:is(:hover, :focus-visible, :active)::before { clip-path: circle(160% at 20px 50%); }
+
+/* ── Mobile (matches the pages' own 700px breakpoint) ─ */
+@media (max-width: 700px) {
+  .card { border-width: 0 0 1px; border-radius: 0; box-shadow: none; }
+  .info, .cal-col { border-color: var(--linea); }
+}
