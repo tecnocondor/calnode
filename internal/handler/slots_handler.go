@@ -380,11 +380,17 @@ func (h *Handler) loadHostSchedule(ctx context.Context, userID, eventTypeID stri
 		hostLoc = time.UTC
 	}
 
+	// Rules scoped to this event type replace the host's global weekly hours instead of
+	// adding to them, so an event can offer fewer hours than the rest of the calendar
+	// (event type → Availability). Without any, the global rules apply as before.
 	ruleRows, err := h.db.QueryContext(ctx, `
 		SELECT day_of_week, start_time, end_time
 		FROM availability_rules
-		WHERE user_id = ? AND (event_type_id = ? OR event_type_id IS NULL)
-		ORDER BY day_of_week, start_time`, userID, eventTypeID)
+		WHERE user_id = ?
+		  AND (event_type_id = ? OR (event_type_id IS NULL AND NOT EXISTS (
+		      SELECT 1 FROM availability_rules
+		      WHERE user_id = ? AND event_type_id = ?)))
+		ORDER BY day_of_week, start_time`, userID, eventTypeID, userID, eventTypeID)
 	if err != nil {
 		return nil, nil, nil, err
 	}

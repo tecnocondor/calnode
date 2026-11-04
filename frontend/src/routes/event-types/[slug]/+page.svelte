@@ -17,6 +17,7 @@
 	import { saveOnCmdS } from '$lib/save-shortcut';
 	import QuestionsPanel from '$lib/components/event-types/QuestionsPanel.svelte';
 	import EmbedPanel from '$lib/components/event-types/EmbedPanel.svelte';
+	import AvailabilityPanel from '$lib/components/event-types/AvailabilityPanel.svelte';
 
 	// Ordered by expected usage. 'custom_video' is retired from the picker but the
 	// backend still renders any legacy event types that use it.
@@ -50,6 +51,7 @@
 	const TABS = [
 		{ id: 'general', label: 'General' },
 		{ id: 'hosts', label: 'Hosts' },
+		{ id: 'availability', label: 'Availability' },
 		{ id: 'notifications', label: 'Notifications' },
 		{ id: 'questions', label: 'Questions' },
 		{ id: 'embed', label: 'Embed' }
@@ -1145,6 +1147,10 @@
 		</select>
 		<Button variant="outline" disabled={!transferOwner || transferring} onclick={transferEvent}>{transferring ? 'Transferring…' : 'Transfer ownership'}</Button>
 	</div>
+{/if}
+
+{#if activeTab === 'availability' && et}
+	<AvailabilityPanel eventTypeId={et.id} />
 {/if}
 
 {#if activeTab === 'questions'}

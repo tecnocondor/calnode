@@ -66,7 +66,8 @@ func (h *Handler) CreateAvailabilityRule(w http.ResponseWriter, r *http.Request)
 }
 
 // ListAvailabilityRules handles GET /v1/availability-rules.
-// Optional query param: ?event_type_id=<id> to filter; omit for global rules.
+// Optional query param: ?event_type_id=<id> for that event type's own rules; omit for
+// the global ones (event_type_id IS NULL), which is what the Availability page edits.
 func (h *Handler) ListAvailabilityRules(w http.ResponseWriter, r *http.Request) {
 	user, _ := userFromContext(r.Context())
 
@@ -84,7 +85,7 @@ func (h *Handler) ListAvailabilityRules(w http.ResponseWriter, r *http.Request) 
 		rows, err = h.db.QueryContext(r.Context(), `
 			SELECT id, event_type_id, day_of_week, start_time, end_time
 			FROM availability_rules
-			WHERE user_id = ?
+			WHERE user_id = ? AND event_type_id IS NULL
 			ORDER BY day_of_week, start_time`, user.ID)
 	}
 	if err != nil {
