@@ -1576,6 +1576,7 @@
 		"tabs": {
 			"general": "General",
 			"hosts": "Hosts",
+			"availability": "Availability",
 			"notifications": "Notifications",
 			"questions": "Questions",
 			"embed": "Embed"

@@ -20,6 +20,7 @@
 	import { ConfirmDialog } from '$lib/components/ui/confirm-dialog';
 	import { t, tr, localeTag } from '$lib/i18n';
 	import LinkedText from '$lib/i18n/linked-text.svelte';
+	import AvailabilityPanel from '$lib/components/event-types/AvailabilityPanel.svelte';
 
 	// Ordered by expected usage. 'custom_video' is retired from the picker but the
 	// backend still renders any legacy event types that use it.
@@ -61,6 +62,7 @@
 	const TABS = $derived([
 		{ id: 'general' as const, label: $t('eventTypeEditor.tabs.general') },
 		{ id: 'hosts' as const, label: $t('eventTypeEditor.tabs.hosts') },
+		{ id: 'availability' as const, label: $t('eventTypeEditor.tabs.availability') },
 		{ id: 'notifications' as const, label: $t('eventTypeEditor.tabs.notifications') },
 		{ id: 'questions' as const, label: $t('eventTypeEditor.tabs.questions') },
 		{ id: 'embed' as const, label: $t('eventTypeEditor.tabs.embed') }
@@ -1236,6 +1238,10 @@
 		</select>
 		<Button variant="outline" disabled={!transferOwner || transferring} onclick={transferEvent}>{transferring ? $t('eventTypeEditor.transfer.inProgress') : $t('eventTypeEditor.transfer.button')}</Button>
 	</div>
+{/if}
+
+{#if activeTab === 'availability' && et}
+	<AvailabilityPanel eventTypeId={et.id} />
 {/if}
 
 {#if activeTab === 'questions'}
