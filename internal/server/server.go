@@ -490,6 +490,7 @@ func New(ctx context.Context, cfg *config.Config, db *sql.DB, logger *slog.Logge
 	// Public booking page
 	mux.HandleFunc("GET /embed.js", h.EmbedJS)
 	mux.HandleFunc("GET /booking.css", h.BookingCSS)
+	mux.HandleFunc("GET /tc/{file...}", h.TecnocondorAsset) // Tecnocondor overlay (fork), see docs/TECNOCONDOR.md
 	mux.HandleFunc("GET /book/{slug}", h.BookPage)
 	mux.HandleFunc("GET /u/{handle}", h.PersonPage)
 	mux.HandleFunc("GET /team/{slug}", h.TeamPage)
