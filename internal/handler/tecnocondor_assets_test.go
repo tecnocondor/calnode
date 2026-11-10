@@ -47,7 +47,7 @@ func TestTecnocondorAsset_cssAndFonts(t *testing.T) {
 			t.Errorf("%s Content-Type = %q", m[1], ct)
 		}
 	}
-	for _, lic := range []string{"geist", "geist-mono", "funnel-display"} {
+	for _, lic := range []string{"figtree", "geist-mono", "funnel-display"} {
 		if serveTC(t, "fonts/OFL-"+lic+".txt").Code != http.StatusOK {
 			t.Errorf("missing OFL licence for %s", lic)
 		}

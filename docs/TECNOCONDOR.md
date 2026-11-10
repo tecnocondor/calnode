@@ -26,7 +26,7 @@ conflict:
 - `internal/handler/tecnocondor/tecnocondor.css` — tokens copied from
   `tecnocondor/web` `src/styles/global.css` (light), fonts, and selector overrides.
   Header comment explains the colour rules.
-- `internal/handler/tecnocondor/fonts/` — Funnel Display, Geist and Geist Mono variable
+- `internal/handler/tecnocondor/fonts/` — Funnel Display, Figtree and Geist Mono variable
   woff2 (latin + latin-ext) from `@fontsource-variable` 5.3.0, with their SIL OFL 1.1
   licences (`OFL-*.txt`). Self-hosted; CSP `default-src 'self'` already allows them.
 - `internal/handler/tecnocondor_assets.go` (+ `_test.go`) — embeds the folder and serves
